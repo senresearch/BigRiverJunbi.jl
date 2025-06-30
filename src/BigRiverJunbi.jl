@@ -8,6 +8,7 @@ using GLM
 using Distributions
 using Statistics
 using PrettyTables
+using LinearAlgebra
 
 include("transforms.jl")
 include("normalize.jl")

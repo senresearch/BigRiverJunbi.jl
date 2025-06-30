@@ -418,6 +418,29 @@ function impute_cat!(data::Matrix{Union{Missing, Float64}})
 end
 
 """
+    imputeKNN(df::DataFrame; k = 5, threshold = 0.2, start_col = 1)
+
+Replaces missing elements based on k-nearest neighbors (KNN) imputation.
+
+# Arguments
+
+- `df`: dataframe with missing values.
+- `k`: number of nearest neighbors to use for imputation.
+- `threshold`: threshold for the number of missing neighbors.
+"""
+function imputeKNN(
+        df::DataFrame;
+        k::Int = 5,
+        threshold::Float64 = 0.2,
+        start_col::Int64 = 1
+)
+    mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
+    return DataFrame(
+        imputeKNN(mat, k; threshold, dims = 1), Symbol.(names(df)[start_col:end])
+    )
+end
+
+"""
     imputeKNN(
         data::AbstractMatrix{Union{Missing, Float64}},
         k::Int = 1;
@@ -455,7 +478,7 @@ function imputeKNN(
     !(0 < threshold < 1) &&
         throw(ArgumentError("Missing neighbors threshold should be within 0 to 1"))
 
-    imputeKNN!(trycopy(data), k + 1, threshold, dims, distance)
+    return imputeKNN!(trycopy(data), k + 1, threshold, dims, distance)
 end
 
 """
@@ -534,26 +557,77 @@ function imputeKNN!(
     return allowmissing(dims == 1 ? X : transpose(X))
 end
 
-"""
-    imputeKNN(df::DataFrame; k = 5, threshold = 0.2, start_col = 1)
-
-Replaces missing elements based on k-nearest neighbors (KNN) imputation.
-
-# Arguments
-
-- `df`: dataframe with missing values.
-- `k`: number of nearest neighbors to use for imputation.
-- `threshold`: threshold for the number of missing neighbors.
-"""
-function imputeKNN(
-        df::DataFrame;
-        k::Int = 5,
-        threshold::Float64 = 0.2,
-        start_col::Int64 = 1
-)
+function imputeSVD(df::DataFrame; start_col::Int64 = 1)
     mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end])
-    mat = imputeKNN(mat, k; threshold, dims = 1)
-    return DataFrame(mat, Symbol.(names(df)[start_col:end]))
+    return DataFrame(imputeSVD(mat), Symbol.(names(df)[start_col:end]))
+end
+
+function imputeSVD(
+        data::AbstractMatrix{Union{Missing, Float64}};
+        rank::Union{Nothing, Int} = nothing,
+        tol::Float64 = 1e-10,
+        maxiter::Int = 100,
+        limits::Union{Tuple{Float64, Float64}, Nothing} = nothing,
+        dims::Union{Nothing, Int} = nothing,
+        verbose::Bool = true
+)
+    return imputeSVD!(trycopy(data); rank, tol, maxiter, limits, dims, verbose)
+end
+
+function imputeSVD!(
+        data::AbstractMatrix{Union{Missing, Float64}};
+        rank::Union{Nothing, Int},
+        tol::Float64,
+        maxiter::Int,
+        limits::Union{Tuple{Float64, Float64}, Nothing},
+        dims::Union{Nothing, Int},
+        verbose::Bool
+)
+    n, p = size(data)
+    k = isnothing(rank) ? 0 : min(rank, p - 1)
+    S = zeros(min(n, p))
+    X = zeros(n, p)
+
+    # Get our before and after views of our missing and non-missing data
+    mmask = ismissing.(data)
+    omask = .!mmask
+    mdata = data[mmask]
+    mX = X[mmask]
+    odata = data[omask]
+    oX = X[omask]
+
+    # substitute missing values with median
+    substitute!(data, median; dims)
+    # print debug information
+    C = sum(abs2, mdata - mX) / sum(abs2, mdata)
+    err = mean(abs.(odata - oX))
+    verbose && @debug("Before", Diff=sum(mdata-mX), MAE=err, convergence=C,
+        normsq=sum(abs2, mdata), mX[1])
+
+    for i in 1:maxiter
+        isnothing(rank) && (k = min(k + 1, p - 1, n - 1))
+        # Compute the SVD and produce a low-rank approximation of the data
+        F = svd(data)
+        S[1:k] .= F.S[1:k]
+        X = F.U * Diagonal(S) * F.Vt
+        # Clamp the values if necessary
+        !isnothing(limits) && clamp!(X, limits...)
+        # Test for convergence
+        mdata = data[mmask]
+        mX = X[mmask]
+        odata = data[omask]
+        oX = X[omask]
+        err = mean(abs.(odata - oX))
+        C = sum(abs2, mdata - mX) / sum(abs2, mdata)
+        # Print the error between reconstruction and observed inputs
+        verbose && @debug("Iteration", i, Diff=sum(mdata-mX), MAE=err,
+            MSS=sum(abs2, mdata), convergence=C)
+        # Update missing values
+        data[mmask] .= X[mmask]
+        isfinite(C) && C < tol && break
+    end
+
+    return data
 end
 
 """

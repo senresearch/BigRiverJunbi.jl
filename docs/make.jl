@@ -20,8 +20,8 @@ makedocs(;
     pages = ["Home" => "index.md"]
 )
 
-deploydocs(; 
-    repo = "github.com/senresearch/BigRiverJunbi.jl", 
+deploydocs(;
+    repo = "github.com/senresearch/BigRiverJunbi.jl",
     devbranch = "main",
     devurl = "stable"
 )

@@ -1,5 +1,5 @@
 """
-    intnorm(mat::Matrix{T}; dims::Int64 = 2, lambda::Float64 = 1.0) where T <: Real
+    intnorm(mat::Matrix{<:Real}; dims::Int64 = 2, lambda::Float64 = 1.0)
 
 Total Area Normalization for each row or column. By default, it normalizes each row.
 This requires that the matrix has all positive values.
@@ -27,7 +27,7 @@ julia> BigRiverJunbi.intnorm(mat)
  0.25      0.0625    0.21875   0.1875     0.28125
 ```
 """
-function intnorm(mat::Matrix{T}; dims::Int64 = 2, lambda::Float64 = 1.0) where {T <: Real}
+function intnorm(mat::Matrix{<:Real}; dims::Int64 = 2, lambda::Float64 = 1.0)
     # if matrix has any negative values, throw an error
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
                            " before normalizing."
@@ -35,7 +35,7 @@ function intnorm(mat::Matrix{T}; dims::Int64 = 2, lambda::Float64 = 1.0) where {
 end
 
 """
-    pqnorm(mat::Matrix{Float64})
+    pqnorm(mat::Matrix{<:Real})
 
 Performs a probabilistic quotient normalization (PQN) for sample intensities.
 This assumes that the matrix is organized as samples x features and requires that the
@@ -62,7 +62,7 @@ julia> BigRiverJunbi.pqnorm(mat)
  0.25     0.0625   0.21875  0.1875    0.28125
 ```
 """
-function pqnorm(mat::Matrix{T}) where {T <: Real}
+function pqnorm(mat::Matrix{<:Real})
     # if matrix has any negative values, throw an error
     @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
                            " before normalizing."
@@ -70,7 +70,7 @@ function pqnorm(mat::Matrix{T}) where {T <: Real}
     mat = intnorm(mat; dims = 2)
     # Calculate the reference spectrum (default: median) of all samples
     ref_spec = median(mat; dims = 1)
-    # Calculate the quotients of all variables of interest of the test spectrum 
+    # Calculate the quotients of all variables of interest of the test spectrum
     # with those of the reference spectrum.
     quotients = mat ./ ref_spec
     # Calculate the median of these quotients.
@@ -81,7 +81,7 @@ function pqnorm(mat::Matrix{T}) where {T <: Real}
 end
 
 """
-    quantilenorm(data::Matrix{T}) where T <: Real
+    quantilenorm(data::Matrix{<:Real})
 
 Performs quantile normalization for sample intensities. This assumes
 that the matrix is organized as samples x features.
@@ -107,7 +107,7 @@ julia> BigRiverJunbi.quantilenorm(mat)
  6.6  4.3  6.6  6.6  6.6
 ```
 """
-function quantilenorm(data::Matrix{T}) where {T <: Real}
+function quantilenorm(data::Matrix{<:Real})
     # creates a matrix of ranks for each column
     ranks = reduce(hcat, StatsBase.competerank.(eachcol(data)))
     # sort each column by the ranks
@@ -123,8 +123,10 @@ function quantilenorm(data::Matrix{T}) where {T <: Real}
 end
 
 """
-    huberize(mat::Matrix{T}; alpha::Float64 = 1.0,
-        error_on_zero_mad::Bool = true) where {T <: Real}
+    huberize(
+        mat::Matrix{<:Real}; alpha::Float64 = 1.0,
+        error_on_zero_mad::Bool = true
+    )
 
 Performs Huberization for sample intensities.
 
@@ -156,8 +158,10 @@ julia> BigRiverJunbi.huberize(mat)
  8.0      2.0  7.0     5.89787  7.83846
 ```
 """
-function huberize(mat::Matrix{T}; alpha::Float64 = 1.0,
-        error_on_zero_mad::Bool = true) where {T <: Real}
+function huberize(
+        mat::Matrix{<:Real}; alpha::Float64 = 1.0,
+        error_on_zero_mad::Bool = true
+)
     # check if the MAD is zero for each column and throw an error if it is
     # disable this check if error_on_zero_mad is false
     error_on_zero_mad && check_mad(mat; dims = 2)
@@ -168,8 +172,10 @@ function huberize(mat::Matrix{T}; alpha::Float64 = 1.0,
 end
 
 """
-    huberize(x::Vector{T}; alpha::Float64 = 1.0,
-        error_on_zero_mad::Bool = true) where {T <: Real}
+    huberize(
+        x::Vector{<:Real}; alpha::Float64 = 1.0,
+        error_on_zero_mad::Bool = true
+    )
 
 Performs Huberization for a single vector.
 
@@ -178,8 +184,10 @@ Performs Huberization for a single vector.
 - `alpha`: The alpha parameter for the Huberization. Default is 1.0.
 - `error_on_zero_mad`: Whether to throw an error if the MAD is zero. Default is `true`.
 """
-function huberize(x::Vector{T}; alpha::Float64 = 1.0,
-        error_on_zero_mad::Bool = true) where {T <: Real}
+function huberize(
+        x::Vector{<:Real}; alpha::Float64 = 1.0,
+        error_on_zero_mad::Bool = true
+)
     error_on_zero_mad && check_mad(x)
     med = median(x)
     s = mad(x; center = med, normalize = true)
@@ -206,7 +214,7 @@ L(x) = \\begin{cases}
 - `alpha`: The alpha parameter for the Huber loss. Default is 1.0.
 """
 function huberloss(x::Real; alpha::Float64 = 1.0)
-    @assert alpha>0 "Huber crossover parameter alpha must be positive."
+    @assert alpha > 0 "Huber crossover parameter alpha must be positive."
     d = abs(x)
     if d <= alpha
         return d^2 / 2

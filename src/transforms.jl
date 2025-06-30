@@ -1,12 +1,13 @@
 """
-    log2_tx(mat::Matrix{Float64}; eps::Float64 = 1.0)
+    log_tx(mat::Matrix{<:Real}; base::Real = 2, constant::Real = 0)
 
-Computes logarithm base 2 on a matrix, adding a constant to all values to avoid
-log(0). This requires that the matrix has all positive values.
+Computes logarithm on a matrix, adding a constant to all values (for instance, to avoid log(0)).
+Default base is 2, default constant is 0.
 
 # Arguments
 - `mat`: The matrix to transform.
-- `eps`: The constant to add to all values. Default is 1.0.
+- `base`: The base of the logarithm. Default is 2.
+- `constant`: The constant to add to all values. Default is 0.
 
 # Examples
 
@@ -19,17 +20,18 @@ julia> mat = [0.5 1 2 3 3.5;
  7.0  3.0  5.0  0.0  3.5
  8.0  2.0  5.0  6.0  0.0
 
-julia> BigRiverJunbi.log2_tx(mat)
+julia> BigRiverJunbi.log_tx(mat; constant = 1)
 3×5 Matrix{Float64}:
  0.584963  1.0      1.58496  2.0      2.16993
  3.0       2.0      2.58496  0.0      2.16993
  3.16993   1.58496  2.58496  2.80735  0.0
 ```
 """
-function log2_tx(mat::Matrix{T}; eps::Float64 = 1.0) where {T <: Real}
-    @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
-                           " before transforming."
-    return log2.(mat .+ eps)
+function log_tx(mat::Matrix{<:Real}; base::Real = 2, constant::Real = 0)
+    mat = mat .+ constant
+    @assert all(mat .> 0) "Matrix has non-positive values even after adding constant. Please" *
+                          " remove such values before transforming."
+    return log.(base, mat)
 end
 
 """
@@ -60,8 +62,4 @@ julia> BigRiverJunbi.meancenter_tx(mat)
   2.83333   0.0   1.0   3.0  -2.33333
 ```
 """
-function meancenter_tx(mat::Matrix{T}, dims::Int64 = 1) where {T <: Real}
-    @assert all(mat .>= 0) "Matrix has negative values. Please remove negative values" *
-                           " before transforming."
-    return mat .- mean(mat; dims)
-end
+meancenter_tx(mat::Matrix{<:Real}, dims::Int64 = 1) = mat .- mean(mat; dims)

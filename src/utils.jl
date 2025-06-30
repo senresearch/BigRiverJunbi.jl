@@ -8,10 +8,11 @@ last row and column highlighted.
 !!! warning
     This function will not preserve the type of the dataframe, as it converts everything
     to a string for the pretty table. It is primarily used for quick visualizations. For
-    getting the actual missing percentages, use the `missing_percentages` function instead.
+    getting the actual missing percentages, use the [`missing_percentages`](@ref) function
+    instead.
 
 # Arguments
-- `df::DataFrame`: The dataframe to add the missing summary to.
+- `df`: The dataframe to add the missing summary to.
 
 # Examples
 
@@ -81,12 +82,12 @@ Returns the percentage of missing values in each column and row, as well as the 
 percentage of missing values in the dataframe.
 
 # Arguments
-- `df::DataFrame`: The dataframe to calculate the missing percentages for.
+- `df`: The dataframe to calculate the missing percentages for.
 
 # Returns
-- `pmissing_cols::Vector{Float64}`: The percentage of missing values in each column.
-- `pmissing_rows::Vector{Float64}`: The percentage of missing values in each row.
-- `total_missing::Float64`: The total percentage of missing values in the dataframe.
+- `pmissing_cols`: A `Vector` of the percentage of missing values in each column.
+- `pmissing_rows`: A `Vector` of the percentage of missing values in each row.
+- `total_missing`: The total percentage of missing values in the dataframe.
 
 # Examples
 
@@ -118,15 +119,15 @@ function missing_percentages(df::DataFrame)
 end
 
 """
-    check_mad(mat::Matrix{T}; dims::Int = 2) where {T <: Real}
+    check_mad(mat::Matrix{<:Real}; dims::Int = 2)
 
 Checks if the MAD (median absolute deviation) is zero for each column of a matrix.
 If it is, then errors and displays the list of columns with zero MAD.
 
 # Arguments
-- `mat::Matrix{T}`: The matrix to check the MAD for.
+- `mat`: The matrix to check the MAD for.
 """
-function check_mad(mat::Matrix{T}; dims::Int = 2) where {T <: Real}
+function check_mad(mat::Matrix{<:Real}; dims::Int = 2)
     error_cols = String[]
     for i in axes(mat, dims)
         try
@@ -145,14 +146,14 @@ function check_mad(mat::Matrix{T}; dims::Int = 2) where {T <: Real}
 end
 
 """
-    check_mad(x::Vector{T}) where {T <: Real}
+    check_mad(x::Vector{<:Real})
 
 Checks if the MAD (median absolute deviation) is zero for a vector. If it is, then errors.
 
 # Arguments
-- `x::Vector{T}`: The vector to check the MAD for.
+- `x`: The vector to check the MAD for.
 """
-function check_mad(x::Vector{T}) where {T <: Real}
+function check_mad(x::Vector{<:Real})
     s = mad(x; normalize = true)
     if s == 0
         throw(ErrorException("The MAD (median absolute deviation) of this vector is zero, " *
