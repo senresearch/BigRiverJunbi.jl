@@ -22,8 +22,10 @@ makedocs(;
     ),
     pages = [
         "Home" => "index.md",
-        "Functions for matrices" => "api.md",
-        "Functions for dataframes" => "df-api.md",
+        "API" => [
+            "For matrices" => "api.md",
+            "For dataframes" => "df-api.md",
+        ]
     ]
 )
 

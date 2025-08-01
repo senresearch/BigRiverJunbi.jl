@@ -9,7 +9,7 @@ This requires that the matrix has all positive values.
 - `dims`: The dimension to normalize across. Default is 2.
 - `lambda`: The lambda parameter for the normalization. Default is 1.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
@@ -44,7 +44,7 @@ matrix have all positive values.
 # Arguments
 - `mat`: The matrix to normalize.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
@@ -89,7 +89,7 @@ that the matrix is organized as samples x features.
 # Arguments
 - `data`: The matrix to normalize.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
@@ -140,7 +140,7 @@ Performs Huberization for sample intensities.
     values if the MAD is zero. This can be useful if you are expecting this behavior and
     want to handle it yourself, but should be used with caution.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;

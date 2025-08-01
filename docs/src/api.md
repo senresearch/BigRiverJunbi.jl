@@ -1,10 +1,22 @@
 # Functions for matrices
 
-```@index
-Pages   = ["api.md"]
-```
+## Imputation
 
 ```@autodocs
 Modules = [BigRiverJunbi]
-Filter = t -> !startswith(string(t), "DataFramesExt")
+Pages = ["impute.jl"]
+```
+
+## Normalization
+
+```@autodocs
+Modules = [BigRiverJunbi]
+Pages = ["normalize.jl"]
+```
+
+## Transformation
+
+```@autodocs
+Modules = [BigRiverJunbi]
+Pages = ["transforms.jl"]
 ```

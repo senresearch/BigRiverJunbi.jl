@@ -1,6 +1,6 @@
 # BigRiverJunbi.jl
 
-_Statistical Tools for Data Preprocessing (Imputation, Normalization, Transformation)_
+_Data Preparation for 'omics data in Julia_
 
 [![CI](https://github.com/senresearch/BigRiverJunbi.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/senresearch/BigRiverJunbi.jl/actions/workflows/CI.yml)
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://senresearch.github.io/BigRiverJunbi.jl/stable)
@@ -10,11 +10,11 @@ _Statistical Tools for Data Preprocessing (Imputation, Normalization, Transforma
 
 ## What is BigRiverJunbi.jl?
 
-BigRiverJunbi.jl is a Julia package for 'omics data preprocessing. While it can be used as a standalone package, it was designed to be used in conjunction with the BigRiverMetabolomics.jl package.
+BigRiverJunbi.jl is a Julia package for 'omics data preprocessing. It provides functions for data imputation, normalization, transformation and standardization.
 
 ### Why the name?
 
-"Junbi" (准备, 준비, 準備) is the word for "preparation" in Chinese, Korean, and Japanese (the pronunciation is slightly different in each of these).
+The word "Junbi" (準備, 준비, 准备) is "preparation" in Chinese, Korean, and Japanese (the pronunciation is slightly different in each of these).
 
 ## Installation
 
