@@ -215,11 +215,7 @@ L(x) = \\begin{cases}
 function huberloss(x::Real; alpha::Real = 1)
     @assert alpha > 0 "Huber crossover parameter alpha must be positive."
     d = abs(x)
-    if d <= alpha
-        return d^2 / 2
-    else
-        return alpha * (d - alpha^2 / 2)
-    end
+    return d <= alpha ? d^2 / 2 : alpha * (d - alpha^2 / 2)
 end
 
 """
