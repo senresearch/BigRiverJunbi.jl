@@ -22,17 +22,16 @@ makedocs(;
     ),
     pages = [
         "Home" => "index.md",
+        "Getting Started" => "getting-started.md",
         "API" => [
             "For matrices" => "api.md",
             "For dataframes" => "df-api.md",
-        ]
+        ],
     ]
 )
 
 DocumenterVitepress.deploydocs(;
     repo = "github.com/senresearch/BigRiverJunbi.jl",
-    target = "build",
     devbranch = "main",
-    branch = "gh-pages",
     push_preview = true
 )
