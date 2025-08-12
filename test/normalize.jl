@@ -91,7 +91,7 @@ end
     @test size(result_single_col) == (3, 1)
 
     # Test that ranks are preserved within each feature (column)
-    for j in axes(mat, 2)
+    @views for j in axes(mat, 2)
         original_ranks = sortperm(mat[:, j])
         result_ranks = sortperm(result[:, j])
         @test original_ranks == result_ranks

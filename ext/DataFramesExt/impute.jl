@@ -9,7 +9,7 @@ Replaces missing elements in the specified columns with zero.
 - `start_col`: column index to start imputing from.
 - `end_col`: column index to end imputing at.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> df = DataFrame(A = [1, 2, 3],
@@ -55,7 +55,7 @@ in the corresponding variable.
 - `start_col`: column index to start imputing from.
 - `end_col`: column index to end imputing at.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> df = DataFrame(A = [1, 2, 3],
@@ -129,7 +129,7 @@ non-missing elements in the corresponding variable.
 - `start_col`: column index to start imputing from.
 - `end_col`: column index to end imputing at.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> df = DataFrame(A = [1, 2, 3],
@@ -179,7 +179,7 @@ Returns imputed dataframe based on a categorical imputation:
 - `start_col`: column index to start imputing from.
 - `end_col`: column index to end imputing at.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> df = DataFrame(A = [1, 2, 3],

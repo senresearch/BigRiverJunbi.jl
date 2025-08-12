@@ -1,17 +1,12 @@
-"""
-    check_mad(mat::Matrix{<:Real}; dims::Int = 2)
-
-Checks if the MAD (median absolute deviation) is zero for each column of a matrix.
-If it is, then errors and displays the list of columns with zero MAD.
-
-# Arguments
-- `mat`: The matrix to check the MAD for.
-"""
+# Check if the MAD is zero for each column of the matrix. If it is, then errors and
+# displays the list of columns with zero MAD. Can also be used to check each row of a matrix
+# by setting `dims` to 1.
 function check_mad(mat::Matrix{<:Real}; dims::Int = 2)
+    @assert dims in [1, 2] "dims must be 1 or 2"
     error_cols = String[]
     for i in axes(mat, dims)
         try
-            check_mad(mat[:, i])
+            dims == 2 ? check_mad(mat[:, i]) : check_mad(mat[i, :])
         catch
             push!(error_cols, string(i))
         end
@@ -29,14 +24,7 @@ function check_mad(mat::Matrix{<:Real}; dims::Int = 2)
     end
 end
 
-"""
-    check_mad(x::Vector{<:Real})
-
-Checks if the MAD (median absolute deviation) is zero for a vector. If it is, then errors.
-
-# Arguments
-- `x`: The vector to check the MAD for.
-"""
+# Checks if the MAD (median absolute deviation) is zero for a vector. If it is, then errors.
 function check_mad(x::Vector{<:Real})
     s = mad(x; normalize = true)
     return if s == 0
