@@ -1,7 +1,7 @@
 name = "BigRiverJunbi"
 uuid = "6a06b223-7d19-411a-858f-7a319f02fdfd"
-authors = ["Abhirath Anand <74202102+theabhirath@users.noreply.github.com>", "Gregory Farage <faragegr@gmail.com>", "Saunak Sen <sen@uthsc.edu>"]
-version = "0.1.1"
+authors = ["Abhirath Anand <74202102+theabhirath@users.noreply.github.com>", "Gregory Farage", "Saunak Sen"]
+version = "0.1.2"
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
