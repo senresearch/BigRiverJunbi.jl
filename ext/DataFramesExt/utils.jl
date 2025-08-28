@@ -14,7 +14,7 @@ last row and column highlighted.
 # Arguments
 - `df`: The dataframe to add the missing summary to.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> df = DataFrame(A = [1, 2, 3],
@@ -91,7 +91,7 @@ percentage of missing values in the dataframe.
 - `pmissing_rows`: A `Vector` of the percentage of missing values in each row.
 - `total_missing`: The total percentage of missing values in the dataframe.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> df = DataFrame(A = [1, 2, 3],

@@ -283,7 +283,7 @@ function impute_min_prob!(
     end
     sd_temp = median(sd_vals) * tune_sigma
     # generate data from a normal distribution with the estimated parameters
-    for i in 1:n_samples
+    @views for i in 1:n_samples
         dist = Normal(min_vals[i], sd_temp)
         curr_sample = dims == 1 ? data[:, i] : data[i, :]
         curr_sample_imputed = trycopy(curr_sample)
@@ -528,7 +528,7 @@ function impute_QRILC!(
     )
     # Get dimensions of the data
     n_samples, n_features = size(data)
-    for i in 1:n_samples
+    @views for i in 1:n_samples
         curr_sample = data[:, i]
         # Calculate the percentage of missing values
         pNAs = count(ismissing, curr_sample) / length(curr_sample)

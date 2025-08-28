@@ -9,7 +9,7 @@ Default base is 2, default constant is 0.
 - `base`: The base of the logarithm. Default is 2.
 - `constant`: The constant to add to all values. Default is 0.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
@@ -44,7 +44,7 @@ all positive values.
 - `mat`: The matrix to transform.
 - `dims`: The dimension to mean center across. Default is 1.
 
-# Examples
+# Example
 
 ```jldoctest
 julia> mat = [0.5 1 2 3 3.5;
