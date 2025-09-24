@@ -535,7 +535,7 @@ function impute_QRILC!(
         # Estimate the mean and standard deviation of the original
         # distribution using quantile regression
         upper_q = 0.99
-        q_normal = map(Base.Fix1(quantile, Normal(0, 1)), LinRange(pNAs + eps, upper_q + eps, 100))
+        q_normal = quantile(Normal(0, 1), LinRange(pNAs + eps, upper_q + eps, 100))
         q_curr_sample = quantile(skipmissing(curr_sample), LinRange(eps, upper_q + eps, 100))
         temp_QR = lm(hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample)
         # get the coefficients of the quantile regression
