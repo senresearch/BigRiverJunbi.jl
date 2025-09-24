@@ -234,12 +234,13 @@ function BigRiverJunbi.imputeKNN(
         k::Int = 5,
         threshold::Float64 = 0.2,
         start_col::Int64 = 1,
-        end_col::Int64 = size(df, 2)
+        end_col::Int64 = size(df, 2),
+        kwargs...
     )
     # TODO: add a example/doctest
     mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
     transformed = DataFrame(
-        BigRiverJunbi.imputeKNN(mat, k; threshold, dims = 1), Symbol.(names(df)[start_col:end_col])
+        BigRiverJunbi.imputeKNN(mat, k; threshold, dims = 1, kwargs...), Symbol.(names(df)[start_col:end_col])
     )
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
@@ -258,17 +259,19 @@ Imputation for left-censored data" (QRILC) method.
 """
 # TODO: add a example/doctest
 function BigRiverJunbi.impute_QRILC(
-        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2)
+        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2), kwargs...
     )
     mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
-    transformed = DataFrame(BigRiverJunbi.impute_QRILC!(mat), Symbol.(names(df)[start_col:end_col]))
+    transformed = DataFrame(BigRiverJunbi.impute_QRILC!(mat; kwargs...), Symbol.(names(df)[start_col:end_col]))
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
 
 # TODO: add docstring
 # TODO: add a example/doctest
-function BigRiverJunbi.imputeSVD(df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2))
+function BigRiverJunbi.imputeSVD(
+        df::DataFrame; start_col::Int64 = 1, end_col::Int64 = size(df, 2), kwargs...
+    )
     mat = Matrix{Union{Missing, Float64}}(df[:, start_col:end_col])
-    transformed = DataFrame(BigRiverJunbi.imputeSVD(mat), Symbol.(names(df)[start_col:end_col]))
+    transformed = DataFrame(BigRiverJunbi.imputeSVD(mat; kwargs...), Symbol.(names(df)[start_col:end_col]))
     return hcat(df[:, 1:(start_col - 1)], transformed, df[:, (end_col + 1):end])
 end
