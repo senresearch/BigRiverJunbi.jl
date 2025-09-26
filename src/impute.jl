@@ -581,18 +581,7 @@ function impute_QRILC!(
     data = transpose_data ? permutedims(data) : data
   
     # Optional: log-transform in place on non-missing entries
-    if log_transform
-        @inbounds for j in 1:size(data, 2), i in 1:size(data, 1)
-            v = data[i, j]
-            if !ismissing(v)
-                s = v + log_offset
-                if !(s > 0)
-                    throw(ArgumentError("log_transform=true requires x + log_offset > 0; got $(v) at ($i,$j). Increase log_offset."))
-                end
-                data[i, j] = log(s)
-            end
-        end
-    end
+    log_transform && log_tx!(data; log_offset)
 
     # Get dimensions of the data
     n_rows, m_cols = size(data)
@@ -625,14 +614,7 @@ function impute_QRILC!(
     end
 
     # Invert log transform
-    if log_transform
-        @inbounds for j in 1:size(data, 2), i in 1:size(data, 1)
-            v = data[i, j]
-            if !ismissing(v)
-                data[i, j] = exp(v) - log_offset
-            end
-        end
-    end
+    log_transform && log_tx_inv!(data; log_offset)
 
     # Transpose data back if it was transposed
     data = transpose_data ? permutedims(data) : data
@@ -640,7 +622,41 @@ function impute_QRILC!(
     return data
 end
 
-### TODO: add docstrings for the SVD imputation methods
+"""
+        imputeSVD(
+                data::AbstractMatrix{<:Union{Missing, Real}};
+                rank::Union{Nothing, Int} = nothing,
+                tol::Float64 = 1.0e-10,
+                maxiter::Int = 100,
+                limits::Union{Tuple{Float64, Float64}, Nothing} = nothing,
+                dims::Union{Nothing, Int} = nothing,
+                verbose::Bool = true
+        )
+
+Return a copy of `data` with missing values imputed by an iterative low-rank SVD
+approximation.
+
+# Arguments
+- `data`: Matrix of observations that may contain `missing` entries.
+- `rank`: Target rank of the reconstruction. If `nothing`, the method starts at rank 0
+    and increases it by one per iteration up to `min(size(data)...) - 1`.
+- `tol`: Convergence tolerance on the relative squared difference of the imputed entries.
+- `maxiter`: Maximum number of SVD refinements.
+- `limits`: Optional `(lo, hi)` bounds; imputed values are clamped to this range each
+    iteration when provided.
+- `dims`: Dimension passed to [`substitute!`](@ref) for the initial median fill. Use `1` to
+    substitute column-wise medians, `2` for row-wise medians, or `nothing` to use the entire
+    matrix.
+- `verbose`: When `true`, emits `@debug` diagnostics for each iteration (diff, MAE,
+    convergence ratio).
+
+# Returns
+`Matrix{Union{Missing, Float64}}` with the same size as `data`, where the `missing` entries
+have been replaced by the fitted low-rank approximation.
+
+# Notes
+The original `data` is left unchanged.
+"""
 function imputeSVD(
         data::AbstractMatrix{<:Union{Missing, Real}};
         rank::Union{Nothing, Int} = nothing,
@@ -654,6 +670,41 @@ function imputeSVD(
     return imputeSVD!(trycopy(promoted); rank, tol, maxiter, limits, dims, verbose)
 end
 
+"""
+    imputeSVD!(
+        data::AbstractMatrix{Union{Missing, Float64}};
+        rank::Union{Nothing, Int},
+        tol::Float64,
+        maxiter::Int,
+        limits::Union{Tuple{Float64, Float64}, Nothing},
+        dims::Union{Nothing, Int},
+        verbose::Bool
+    )
+
+Mutate `data` in place by replacing missing values with an iterative low-rank SVD
+reconstruction.
+
+# Arguments
+- `data`: Matrix whose elements are `Union{Missing, Float64}`. The matrix is overwritten as
+    the algorithm converges.
+- `rank`: Desired rank of the approximation. If `nothing`, the rank is incremented each
+    iteration up to `min(size(data)...) - 1`.
+- `tol`: Convergence tolerance based on the ratio of squared differences between the
+    previous and current imputations on missing entries.
+- `maxiter`: Maximum number of SVD updates.
+- `limits`: Optional `(lo, hi)` bounds applied with `clamp!` after each reconstruction.
+- `dims`: Dimension forwarded to [`substitute!`](@ref) when computing the initial median
+    replacement of missings.
+- `verbose`: When `true`, emits `@debug` logs summarizing diagnostics for the initial state
+    and each iteration.
+
+# Returns
+The mutated `data` matrix with missing values imputed.
+
+# Notes
+Call [`imputeSVD`](@ref) to use the same algorithm with sensible defaults for the keyword
+arguments while leaving the original data untouched.
+"""
 function imputeSVD!(
         data::AbstractMatrix{Union{Missing, Float64}};
         rank::Union{Nothing, Int},
