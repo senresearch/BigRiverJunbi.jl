@@ -11,7 +11,7 @@
     ]
 
     # Test with constant to avoid log(0)
-    result = BigRiverJunbi.log_tx(mat; constant = 1)
+    result = BigRiverJunbi.log_tx(mat; log_offset = 1)
     expected = [
         0.584963 1.0 1.58496 2.0 2.16993;
         3.0 2.0 2.58496 0.0 2.16993;
@@ -48,7 +48,7 @@ end
 
     # Test error with negative values even after adding constant
     mat_negative = [-2.0 1.0; 3.0 -1.0]
-    @test_throws AssertionError BigRiverJunbi.log_tx(mat_negative; constant = 1)
+    @test_throws AssertionError BigRiverJunbi.log_tx(mat_negative; log_offset = 1)
 
     # Test error with zero values and no constant
     mat_with_zeros = [0.0 1.0; 2.0 3.0]
@@ -60,7 +60,7 @@ end
 
     # Test error when constant is insufficient
     mat_very_negative = [-5.0 1.0; 2.0 -3.0]
-    @test_throws AssertionError BigRiverJunbi.log_tx(mat_very_negative; constant = 2)
+    @test_throws AssertionError BigRiverJunbi.log_tx(mat_very_negative; log_offset = 2)
 
     # Test behavior with invalid base
     mat_positive = [1.0 2.0; 3.0 4.0]
@@ -87,7 +87,7 @@ end
 
     # Test with large constant
     mat_small = [0.1 0.2; 0.3 0.4]
-    result_large_constant = BigRiverJunbi.log_tx(mat_small; constant = 100)
+    result_large_constant = BigRiverJunbi.log_tx(mat_small; log_offset = 100)
     expected_large_constant = log.(2, mat_small .+ 100)
     @test result_large_constant ≈ expected_large_constant
 
@@ -104,9 +104,66 @@ end
 
     # Test with very small positive values
     mat_tiny = [1.0e-10 1.0e-5; 1.0e-3 1.0]
-    result_tiny = BigRiverJunbi.log_tx(mat_tiny; constant = 0)
+    result_tiny = BigRiverJunbi.log_tx(mat_tiny; log_offset = 0)
     # Should not throw error since all values are positive
     @test all(isfinite.(result_tiny))
+end
+
+@testitem "log_tx with missing values" begin
+    using Test
+    using BigRiverJunbi
+
+    mat = Union{Missing, Float64}[1.0 missing; 3.0 5.0]
+    mat_copy = copy(mat)
+    result = BigRiverJunbi.log_tx(mat; base = ℯ, log_offset = 1.0)
+
+    @test isequal(mat, mat_copy)  # non-mutating
+    @test result !== mat  # returns new matrix
+    @test result[1, 1] ≈ log(ℯ, 2.0)
+    @test result[2, 1] ≈ log(ℯ, 4.0)
+    @test result[2, 2] ≈ log(ℯ, 6.0)
+    @test ismissing(result[1, 2])
+
+    mat_bad = Union{Missing, Float64}[missing -0.5; 0.0 1.0]
+    @test_throws ArgumentError BigRiverJunbi.log_tx(mat_bad; log_offset = 0.0)
+end
+
+@testitem "log_tx! in-place real matrices" begin
+    using Test
+    using BigRiverJunbi
+
+    mat = [1.0 2.0; 4.0 8.0]
+    BigRiverJunbi.log_tx!(mat; base = 2, log_offset = 0.0)
+    @test mat ≈ [0.0 1.0; 2.0 3.0]
+
+    mat = [0.1 1.0; 2.0 3.0]
+    @test_throws ArgumentError BigRiverJunbi.log_tx!(mat; log_offset = 0.0)
+
+    mat = [0.1 1.0; 2.0 3.0]
+    mat_copy = copy(mat)
+    BigRiverJunbi.log_tx!(mat; log_offset = 1.0)
+    @test mat ≈ log.(ℯ, mat_copy .+ 1.0)
+end
+
+@testitem "log_tx_inv round trip" begin
+    using Test
+    using BigRiverJunbi
+
+    mat = [0.25 1.5; 4.0 8.0]
+    transformed = BigRiverJunbi.log_tx(mat; base = 2, log_offset = 0.75)
+    restored = BigRiverJunbi.log_tx_inv(transformed; base = 2, log_offset = 0.75)
+    @test restored ≈ mat
+
+    mat_miss = Union{Missing, Float64}[missing 1.0; 2.5 missing]
+    transformed_miss = BigRiverJunbi.log_tx(mat_miss; log_offset = 0.5)
+    restored_miss = BigRiverJunbi.log_tx_inv(transformed_miss; log_offset = 0.5)
+    @test isequal(restored_miss, mat_miss)
+
+    # Mutating inverse
+    mat_roundtrip = copy(mat)
+    BigRiverJunbi.log_tx!(mat_roundtrip; base = 2, log_offset = 0.75)
+    BigRiverJunbi.log_tx_inv!(mat_roundtrip; base = 2, log_offset = 0.75)
+    @test mat_roundtrip ≈ mat
 end
 
 @testitem "meancenter_tx basic functionality" begin

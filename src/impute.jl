@@ -466,15 +466,22 @@ end
 
 """
     impute_QRILC(
-        data::Matrix{<:Union{Missing, Real}};
-        tune_sigma::Float64 = 1.0,
-        eps::Float64 = 0.005
+        data::Matrix{Union{Missing, Float64}};
+        tune_sigma::Float64 = 1.0, 
+        transpose_data::Bool = false,
+        log_transform::Bool = true,
+        log_offset::Float64 = 0.0,
+        delta::Float64 = 0.001,
+        upper_q::Float64 = 0.99,
+        rng::AbstractRNG = Random.default_rng()
     )
 
 Returns imputated matrix based on the "Quantile regression Imputation for left-censored
-data" (QRILC) method. The function is based on the function `impute.QRILC` from the
-`imputeLCMD` R package, with one difference: the default value of `eps` is set to 0.005
-instead of 0.001.
+data" (QRILC) method. Writes the result back to the original matrix. The function is based on
+the function `impute.QRILC` from the `imputeLCMD` R package.
+
+**Imputation is performed column-wise** (one sample at a time). The **recommended layout** is
+**samples in columns** and **features in rows** (i.e., each column is a sample).
 
 # Arguments
 
@@ -484,30 +491,55 @@ instead of 0.001.
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
-  Default is 1.0.
-- `eps`: small value added to the quantile for stability.
+- `transpose_data`: if `true`, transpose before imputation and transpose back before returning.
+- `log_transform`: if `true`, apply log(+offset) pre-imputation and invert post-imputation (default is `true``).
+- `log_offset`: constant added inside the log; set > 0 if your data can be ≤ 0 (e.g., zeros) (default is `0.0`).
+- `delta`: small offset, for numerical stability, that prevents edge-case errors when using
+         probabilities that are too close to 0 or 1. Default is 0.001.
+- `upper_q`: Upper probability limit used when fitting the quantile regression (default `0.99`).         
 - `rng`: random number generator. Default is `Random.default_rng()`.
+
+## Notes
+The method estimates a latent left-censored Normal(μ, σ) per column by regressing empirical
+quantiles of the observed values on standard-normal quantiles, then imputes missings by drawing
+from a Normal(μ, σ·tune_sigma) truncated above at the (p_missing + delta) quantile.
 """
 function impute_QRILC(
-        data::Matrix{<:Union{Missing, Real}};
-        tune_sigma = 1.0, eps = 0.005,
+        data::Matrix{<:Union{Missing, Float64}};
+        tune_sigma = 1.0, 
+        transpose_data::Bool = false,
+        log_transform::Bool = true,
+        log_offset::Float64 = 0.0,
+        delta = 0.005,
+        upper_q = 0.99,
         rng::AbstractRNG = Random.default_rng()
     )
     promoted = convert(Matrix{Union{Missing, Float64}}, data)
-    return impute_QRILC!(trycopy(promoted); tune_sigma, eps, rng)
+    return impute_QRILC!(
+            trycopy(promoted); tune_sigma, transpose_data, log_transform, 
+            log_offset, delta, upper_q, rng
+        )
 end
+
 
 """
     impute_QRILC!(
         data::Matrix{Union{Missing, Float64}};
-        tune_sigma::Float64 = 1.0, eps::Float64 = 0.005,
+        tune_sigma::Float64 = 1.0, 
+        transpose_data::Bool = false,
+        log_transform::Bool = true,
+        log_offset::Float64 = 0.0,
+        delta::Float64 = 0.001,
+        upper_q::Float64 = 0.99,
         rng::AbstractRNG = Random.default_rng()
     )
 
-Imputes missing elements based on the "Quantile regression Imputation for left-censored
+Imputes, in place, missing elements based on the "Quantile regression Imputation for left-censored
 data" (QRILC) method. Writes the result back to the original matrix. The function is based on
-the function `impute.QRILC` from the `imputeLCMD` R package, with one difference: the
-default value of `eps` is set to 0.005 instead of 0.001.
+the function `impute.QRILC` from the `imputeLCMD` R package.
+
+**Imputation is performed column-wise** (one sample at a time). The **recommended layout** is
+**samples in columns** and **features in rows** (i.e., each column is a sample).
 
 # Arguments
 
@@ -517,44 +549,114 @@ default value of `eps` is set to 0.005 instead of 0.001.
                 - 1 if the complete data distribution is supposed to be gaussian.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
-- `eps`: small value added to the quantile for stability.
+- `transpose_data`: if `true`, transpose before imputation and transpose back before returning.
+- `log_transform`: if `true`, apply log(+offset) pre-imputation and invert post-imputation (default is `true``).
+- `log_offset`: constant added inside the log; set > 0 if your data can be ≤ 0 (e.g., zeros) (default is `0.0`).
+- `delta`: small offset, for numerical stability, that prevents edge-case errors when using
+         probabilities that are too close to 0 or 1. Default is 0.001.
+- `upper_q`: Upper probability limit used when fitting the quantile regression (default `0.99`).         
 - `rng`: random number generator. Default is `Random.default_rng()`.
+
+## Notes
+The method estimates a latent left-censored Normal(μ, σ) per column by regressing empirical
+quantiles of the observed values on standard-normal quantiles, then imputes missings by drawing
+from a Normal(μ, σ·tune_sigma) truncated above at the (p_missing + delta) quantile.
+
 """
-# TODO: elaborate on eps and why it is set to 0.005
 function impute_QRILC!(
         data::Matrix{<:Union{Missing, Float64}};
-        tune_sigma = 1.0, eps = 0.005,
+        tune_sigma = 1.0, 
+        transpose_data::Bool = false,
+        log_transform::Bool = true,
+        log_offset::Float64 = 0.0,
+        delta = 0.005,
+        upper_q = 0.99,
         rng::AbstractRNG = Random.default_rng()
     )
+    @assert 0 < tune_sigma <= 1 "tune_sigma must be between 0 and 1"
+    @assert 0 < delta < 1 "delta must be between 0 and 1"
+    @assert 0 < upper_q < 1 "upper_q must be between 0 and 1"
+    
+    # Transpose data if necessary
+    data = transpose_data ? permutedims(data) : data
+  
+    # Optional: log-transform in place on non-missing entries
+    log_transform && log_tx!(data; log_offset)
+
     # Get dimensions of the data
-    n_samples, n_features = size(data)
-    @views for i in 1:n_samples
+    n_rows, m_cols = size(data)
+    
+    @views for i in 1:m_cols
         curr_sample = data[:, i]
         # Calculate the percentage of missing values
         pNAs = count(ismissing, curr_sample) / length(curr_sample)
+
         # Estimate the mean and standard deviation of the original
         # distribution using quantile regression
-        upper_q = 0.99
-        q_normal = map(Base.Fix1(quantile, Normal(0, 1)), LinRange(pNAs + eps, upper_q + eps, 100))
-        q_curr_sample = quantile(skipmissing(curr_sample), LinRange(eps, upper_q + eps, 100))
+        q_normal = quantile(Normal(0, 1), LinRange(pNAs + delta, upper_q + delta, 100))
+        q_curr_sample = quantile(skipmissing(curr_sample), LinRange(eps, upper_q + delta, 100))
         temp_QR = lm(hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample)
-        # get the coefficients of the quantile regression
+        # Get the coefficients of the quantile regression
         coefs = coef(temp_QR)
+        # Get the mean and standard deviation of the censured (left-censored) data distribution
         mean_CDD, sd_CDD = coefs[1], abs(coefs[2])
-        # generate data from a truncated normal distribution with the estimated parameters
+        
+        # Generate data from a truncated normal distribution with the estimated parameters
         truncated_dist = truncated(
             Normal(mean_CDD, sd_CDD * tune_sigma);
-            upper = quantile(Normal(mean_CDD, sd_CDD), pNAs + eps)
+            upper = quantile(Normal(mean_CDD, sd_CDD), pNAs + delta)
         )
+        # Fill missing values with random draws from the truncated normal distribution
         curr_sample_imputed = trycopy(curr_sample)
         missing_idx = findall(ismissing, curr_sample)
-        curr_sample_imputed[missing_idx] .= rand(rng, truncated_dist, n_features)[missing_idx]
+        curr_sample_imputed[missing_idx] .= rand(rng, truncated_dist, n_rows)[missing_idx]
         data[:, i] = curr_sample_imputed
     end
+
+    # Invert log transform
+    log_transform && log_tx_inv!(data; log_offset)
+
+    # Transpose data back if it was transposed
+    data = transpose_data ? permutedims(data) : data
+  
     return data
 end
 
-### TODO: add docstrings for the SVD imputation methods
+"""
+        imputeSVD(
+                data::AbstractMatrix{<:Union{Missing, Real}};
+                rank::Union{Nothing, Int} = nothing,
+                tol::Float64 = 1.0e-10,
+                maxiter::Int = 100,
+                limits::Union{Tuple{Float64, Float64}, Nothing} = nothing,
+                dims::Union{Nothing, Int} = nothing,
+                verbose::Bool = true
+        )
+
+Return a copy of `data` with missing values imputed by an iterative low-rank SVD
+approximation.
+
+# Arguments
+- `data`: Matrix of observations that may contain `missing` entries.
+- `rank`: Target rank of the reconstruction. If `nothing`, the method starts at rank 0
+    and increases it by one per iteration up to `min(size(data)...) - 1`.
+- `tol`: Convergence tolerance on the relative squared difference of the imputed entries.
+- `maxiter`: Maximum number of SVD refinements.
+- `limits`: Optional `(lo, hi)` bounds; imputed values are clamped to this range each
+    iteration when provided.
+- `dims`: Dimension passed to [`substitute!`](@ref) for the initial median fill. Use `1` to
+    substitute column-wise medians, `2` for row-wise medians, or `nothing` to use the entire
+    matrix.
+- `verbose`: When `true`, emits `@debug` diagnostics for each iteration (diff, MAE,
+    convergence ratio).
+
+# Returns
+`Matrix{Union{Missing, Float64}}` with the same size as `data`, where the `missing` entries
+have been replaced by the fitted low-rank approximation.
+
+# Notes
+The original `data` is left unchanged.
+"""
 function imputeSVD(
         data::AbstractMatrix{<:Union{Missing, Real}};
         rank::Union{Nothing, Int} = nothing,
@@ -568,6 +670,41 @@ function imputeSVD(
     return imputeSVD!(trycopy(promoted); rank, tol, maxiter, limits, dims, verbose)
 end
 
+"""
+    imputeSVD!(
+        data::AbstractMatrix{Union{Missing, Float64}};
+        rank::Union{Nothing, Int},
+        tol::Float64,
+        maxiter::Int,
+        limits::Union{Tuple{Float64, Float64}, Nothing},
+        dims::Union{Nothing, Int},
+        verbose::Bool
+    )
+
+Mutate `data` in place by replacing missing values with an iterative low-rank SVD
+reconstruction.
+
+# Arguments
+- `data`: Matrix whose elements are `Union{Missing, Float64}`. The matrix is overwritten as
+    the algorithm converges.
+- `rank`: Desired rank of the approximation. If `nothing`, the rank is incremented each
+    iteration up to `min(size(data)...) - 1`.
+- `tol`: Convergence tolerance based on the ratio of squared differences between the
+    previous and current imputations on missing entries.
+- `maxiter`: Maximum number of SVD updates.
+- `limits`: Optional `(lo, hi)` bounds applied with `clamp!` after each reconstruction.
+- `dims`: Dimension forwarded to [`substitute!`](@ref) when computing the initial median
+    replacement of missings.
+- `verbose`: When `true`, emits `@debug` logs summarizing diagnostics for the initial state
+    and each iteration.
+
+# Returns
+The mutated `data` matrix with missing values imputed.
+
+# Notes
+Call [`imputeSVD`](@ref) to use the same algorithm with sensible defaults for the keyword
+arguments while leaving the original data untouched.
+"""
 function imputeSVD!(
         data::AbstractMatrix{Union{Missing, Float64}};
         rank::Union{Nothing, Int},
