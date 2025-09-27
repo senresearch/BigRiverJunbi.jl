@@ -569,7 +569,7 @@ function impute_QRILC!(
         transpose_data::Bool = false,
         log_transform::Bool = true,
         log_offset::Float64 = 0.0,
-        delta = 0.005,
+        delta = 0.001,
         upper_q = 0.99,
         rng::AbstractRNG = Random.default_rng()
     )
@@ -594,7 +594,7 @@ function impute_QRILC!(
         # Estimate the mean and standard deviation of the original
         # distribution using quantile regression
         q_normal = quantile(Normal(0, 1), LinRange(pNAs + delta, upper_q + delta, 100))
-        q_curr_sample = quantile(skipmissing(curr_sample), LinRange(eps, upper_q + delta, 100))
+        q_curr_sample = quantile(skipmissing(curr_sample), LinRange(delta, upper_q + delta, 100))
         temp_QR = lm(hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample)
         # Get the coefficients of the quantile regression
         coefs = coef(temp_QR)
