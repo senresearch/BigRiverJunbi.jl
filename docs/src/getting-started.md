@@ -86,7 +86,7 @@ Transformation is a process of transforming the data to a different distribution
 ```@example 1
 # Log2 transformation with small constant to handle near-zero values
 # Common in 'omics to make data more normally distributed
-transformed_data = BigRiverJunbi.log_tx(normalized_data; base = 2, constant = 1e-6)
+transformed_data = BigRiverJunbi.log_tx(normalized_data; base = 2, log_offset = 1e-6)
 
 nothing # hide
 ```
