@@ -469,7 +469,7 @@ end
         data::Matrix{Union{Missing, Float64}};
         tune_sigma::Float64 = 1.0, 
         transpose_data::Bool = false,
-        log_transform::Bool = true,
+        log_transform::Bool = false,
         log_offset::Float64 = 0.0,
         delta::Float64 = 0.001,
         upper_q::Float64 = 0.99,
@@ -492,7 +492,7 @@ the function `impute.QRILC` from the `imputeLCMD` R package.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
 - `transpose_data`: if `true`, transpose before imputation and transpose back before returning.
-- `log_transform`: if `true`, apply log(+offset) pre-imputation and invert post-imputation (default is `true``).
+- `log_transform`: if `true`, apply log(+offset) pre-imputation and invert post-imputation (default is `false`).
 - `log_offset`: constant added inside the log; set > 0 if your data can be ≤ 0 (e.g., zeros) (default is `0.0`).
 - `delta`: small offset, for numerical stability, that prevents edge-case errors when using
          probabilities that are too close to 0 or 1. Default is 0.001.
@@ -508,7 +508,7 @@ function impute_QRILC(
         data::Matrix{<:Union{Missing, Float64}};
         tune_sigma = 1.0, 
         transpose_data::Bool = false,
-        log_transform::Bool = true,
+        log_transform::Bool = false,
         log_offset::Float64 = 0.0,
         delta = 0.005,
         upper_q = 0.99,
@@ -527,7 +527,7 @@ end
         data::Matrix{Union{Missing, Float64}};
         tune_sigma::Float64 = 1.0, 
         transpose_data::Bool = false,
-        log_transform::Bool = true,
+        log_transform::Bool = false,
         log_offset::Float64 = 0.0,
         delta::Float64 = 0.001,
         upper_q::Float64 = 0.99,
@@ -550,7 +550,7 @@ the function `impute.QRILC` from the `imputeLCMD` R package.
                 - 0 < tune_sigma < 1 if the complete data distribution is supposed to be
                   left-censored.
 - `transpose_data`: if `true`, transpose before imputation and transpose back before returning.
-- `log_transform`: if `true`, apply log(+offset) pre-imputation and invert post-imputation (default is `true``).
+- `log_transform`: if `true`, apply log(+offset) pre-imputation and invert post-imputation (default is `false`).
 - `log_offset`: constant added inside the log; set > 0 if your data can be ≤ 0 (e.g., zeros) (default is `0.0`).
 - `delta`: small offset, for numerical stability, that prevents edge-case errors when using
          probabilities that are too close to 0 or 1. Default is 0.001.
@@ -567,7 +567,7 @@ function impute_QRILC!(
         data::Matrix{<:Union{Missing, Float64}};
         tune_sigma = 1.0, 
         transpose_data::Bool = false,
-        log_transform::Bool = true,
+        log_transform::Bool = false,
         log_offset::Float64 = 0.0,
         delta = 0.001,
         upper_q = 0.99,
@@ -593,8 +593,8 @@ function impute_QRILC!(
 
         # Estimate the mean and standard deviation of the original
         # distribution using quantile regression
-        q_normal = quantile(Normal(0, 1), LinRange(pNAs + delta, upper_q + delta, 100))
-        q_curr_sample = quantile(skipmissing(curr_sample), LinRange(delta, upper_q + delta, 100))
+        q_normal = map(Base.Fix1(quantile, Normal(0, 1)), LinRange(pNAs + delta, upper_q + delta, 100))
+        q_curr_sample = map(Base.Fix1(quantile, skipmissing(curr_sample)), LinRange(delta, upper_q + delta, 100))
         temp_QR = lm(hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample)
         # Get the coefficients of the quantile regression
         coefs = coef(temp_QR)
@@ -604,7 +604,7 @@ function impute_QRILC!(
         # Generate data from a truncated normal distribution with the estimated parameters
         truncated_dist = truncated(
             Normal(mean_CDD, sd_CDD * tune_sigma);
-            upper = quantile(Normal(mean_CDD, sd_CDD), pNAs + delta)
+            upper = map(Base.Fix1(quantile, Normal(mean_CDD, sd_CDD)), pNAs + delta)
         )
         # Fill missing values with random draws from the truncated normal distribution
         curr_sample_imputed = trycopy(curr_sample)

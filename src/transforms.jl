@@ -20,12 +20,12 @@ julia> mat = [0.5 1 2 3 3.5;
  7.0  3.0  5.0  0.0  3.5
  8.0  2.0  5.0  6.0  0.0
 
-julia> BigRiverJunbi.log_tx(mat; log_offset = 1)
+julia> BigRiverJunbi.log_tx(mat; base=2, log_offset = 1)
 3×5 Matrix{Float64}:
  0.584963  1.0      1.58496  2.0      2.16993
  3.0       2.0      2.58496  0.0      2.16993
  3.16993   1.58496  2.58496  2.80735  0.0
-
+```
  ---
 
   log_tx(data::AbstractMatrix{<:Union{Missing, Real}};
@@ -42,13 +42,10 @@ after shifting by `log_offset`. Returns the log transformed `data`.
 
 # Throws
 - `ArgumentError` if a non-missing entry violates `x + log_offset > 0`.
-
-
-```
 """
 function log_tx(
         data::AbstractMatrix{<:Real};
-        base::Real = 2,
+        base::Real = exp(1),
         log_offset::Real = 0.0
     )
     result = copy(data)
@@ -57,7 +54,7 @@ end
 
 function log_tx(
         data::AbstractMatrix{<:Union{Missing, Real}};
-        base::Real = 2,
+        base::Real = exp(1),
         log_offset::Real = 0.0
     )
     result = copy(data)
@@ -86,18 +83,12 @@ julia> mat = [0.5 1 2 3 3.5;
  7.0  3.0  5.0  0.0  3.5
  8.0  2.0  5.0  6.0  0.0
 
-julia> BigRiverJunbi.log_tx(mat; log_offset = 1)
+julia> BigRiverJunbi.log_tx(mat; base = 2, log_offset = 1)
 3×5 Matrix{Float64}:
  0.584963  1.0      1.58496  2.0      2.16993
  3.0       2.0      2.58496  0.0      2.16993
  3.16993   1.58496  2.58496  2.80735  0.0
-
-julia> mat
-3×5 Matrix{Float64}:
- 0.584963  1.0      1.58496  2.0      2.16993
- 3.0       2.0      2.58496  0.0      2.16993
- 3.16993   1.58496  2.58496  2.80735  0.0
-
+```
  ---
 
   log_tx!(data::AbstractMatrix{<:Union{Missing, Real}};
