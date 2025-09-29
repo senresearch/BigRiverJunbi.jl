@@ -595,17 +595,20 @@ function impute_QRILC!(
         # distribution using quantile regression
         q_normal = map(Base.Fix1(quantile, Normal(0, 1)), LinRange(pNAs + delta, upper_q + delta, 100))
         q_curr_sample = map(Base.Fix1(quantile, skipmissing(curr_sample)), LinRange(delta, upper_q + delta, 100))
-        temp_QR = lm(hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)), q_curr_sample)
+
         # Get the coefficients of the quantile regression
-        coefs = coef(temp_QR)
+        # Fit y = β0 + β1*x via least squares
+        β = hcat(ones(length(q_normal), 1), reshape(q_normal, :, 1)) \ q_curr_sample
         # Get the mean and standard deviation of the censured (left-censored) data distribution
-        mean_CDD, sd_CDD = coefs[1], abs(coefs[2])
+        # intercept = mean_CDD, slope ≈ sd_CDD
+        mean_CDD,  sd_CDD= β[1], max(β[2], eps(Float64))    
         
         # Generate data from a truncated normal distribution with the estimated parameters
         truncated_dist = truncated(
-            Normal(mean_CDD, sd_CDD * tune_sigma);
+            Normal(mean_CDD, max(sqrt(sd_CDD * tune_sigma), eps(Float64))); # ref to imputeLCMD R code
             upper = map(Base.Fix1(quantile, Normal(mean_CDD, sd_CDD)), pNAs + delta)
         )
+        
         # Fill missing values with random draws from the truncated normal distribution
         curr_sample_imputed = trycopy(curr_sample)
         missing_idx = findall(ismissing, curr_sample)

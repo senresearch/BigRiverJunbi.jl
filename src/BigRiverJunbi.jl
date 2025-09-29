@@ -3,7 +3,6 @@ module BigRiverJunbi
 using NearestNeighbors
 using StatsBase
 using Missings
-using GLM
 using Distributions
 using Statistics
 using Random
